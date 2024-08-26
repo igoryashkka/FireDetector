@@ -33,7 +33,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "drive_sht.h"
-
+#include "drive_signal.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

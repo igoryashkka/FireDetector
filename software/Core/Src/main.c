@@ -44,6 +44,7 @@ ADC_HandleTypeDef hadc1;
 
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
@@ -60,6 +61,7 @@ static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM14_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 // ------------------------------------------------------------------------------------- //
 // -----------------------------------------MQ -------------------------------------------- //
@@ -89,7 +91,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -109,6 +111,7 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C1_Init();
   MX_TIM14_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);//hw_init
   HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);//hw_init
@@ -126,13 +129,25 @@ int main(void)
 	 // Activate Heater 200mW for 1s
 	 // Perform mesurments
 	 //SHT41_Read_Serial(&serial_number);
-	   SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
-	   SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+	 //  SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
+	 //  SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
 	 // --------
+	 //
 
 
 
-
+	  //There are only three states :
+	  //1.IDLE (Solid Led + Buzzer OFF)
+	  //2.increased emergency (Blink slow + Buzzer ON)
+	  //3.Fire detected (Blink Fast + Buzzer ON)
+	  Signal_detect_smoke();
+	  HAL_Delay(3000);
+	  Signal_idle_state();
+	  HAL_Delay(5000);
+	  Signal_detect_fire();
+	  HAL_Delay(3000);
+	  Signal_idle_state();
+	  HAL_Delay(5000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -293,6 +308,51 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 63999;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 1499;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
 
 }
 
