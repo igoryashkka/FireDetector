@@ -44,6 +44,7 @@ ADC_HandleTypeDef hadc1;
 
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
 
@@ -58,36 +59,18 @@ static void MX_TIM17_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM14_Init(void);
 /* USER CODE BEGIN PFP */
+// ------------------------------------------------------------------------------------- //
+// -----------------------------------------MQ -------------------------------------------- //
+// ------------------------------------------------------------------------------------- //
+
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-static const uint8_t SERIAL_ADDR = 0x44 << 1;
-#define I2C_ADDRESS       0x45
 
-
-#define SHT41_CMD_MEASURE_HIGHREP_STRETCH 0xFD
-HAL_StatusTypeDef ret_trans, ret_rec;
-
-void SHT41_Read_Temperature_Humidity(float *temperature, float *humidity) {
-    uint8_t cmd = SHT41_CMD_MEASURE_HIGHREP_STRETCH;
-    uint8_t data[6];
-
-    ret_trans = HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDRESS << 1, &cmd, 1, HAL_MAX_DELAY);
-
-
-    HAL_Delay(15);
-
-    ret_rec = HAL_I2C_Master_Receive(&hi2c1, I2C_ADDRESS << 1, data, 6, HAL_MAX_DELAY);
-
-    uint16_t temp_raw = (data[0] << 8) | data[1];
-    uint16_t hum_raw = (data[3] << 8) | data[4];
-
-    *temperature = -45.0 + 175.0 * ((float)temp_raw / 65535.0);
-    *humidity = 100.0 * ((float)hum_raw / 65535.0);
-}
 /* USER CODE END 0 */
 
 /**
@@ -97,15 +80,16 @@ void SHT41_Read_Temperature_Humidity(float *temperature, float *humidity) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	 int32_t CH1_DC = 0;
-	 float temperature, humidity;
-	 uint32_t value_adc;
+	//int32_t CH1_DC = 0;
+	float temperature, humidity;
+	uint32_t serial_number;
+	//uint32_t value_adc;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -124,9 +108,10 @@ int main(void)
   MX_TIM16_Init();
   MX_ADC1_Init();
   MX_I2C1_Init();
+  MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);//hw_init
+  HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);//hw_init
 
 
 
@@ -136,50 +121,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-    //Adc test
-	  HAL_ADC_Start(&hadc1); // start the adc
-
-	  HAL_ADC_PollForConversion(&hadc1, 100); // poll for conversion
-
-	  value_adc = HAL_ADC_GetValue(&hadc1); // get the adc value
-
-	  HAL_ADC_Stop(&hadc1); // stop adc
-
-	  HAL_Delay (500); // wait for 500ms
-   //SHT test
-	  //SHT41_Read_Temperature_Humidity(&temperature, &humidity);
+	 // --------
+	 // Check Serial Number
+	 // Activate Heater 200mW for 1s
+	 // Perform mesurments
+	 //SHT41_Read_Serial(&serial_number);
+	   SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
+	   SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+	 // --------
 
 
 
-	    //    HAL_Delay(1000); // Delay for 1 second
-	  //Leds test:
-	 /* while(CH1_DC < 65535)
-	         {
-	             TIM17->CCR1 = CH1_DC;
-	             CH1_DC += 70;
-	             HAL_Delay(1);
-	         }
-	         while(CH1_DC > 0)
-	         {
-	        	 TIM17->CCR1 = CH1_DC;
-	             CH1_DC -= 70;
-	             HAL_Delay(1);
-	         }*/
-
-	  // Buzz
-	   // test Example: set duty cycle to 50%
-	   /* __HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, htim16.Init.Period / 2);
-	      HAL_Delay(1000);
-
-	        // test Example:: set duty cycle to 100% (max volume)
-	        //__HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, htim16.Init.Period);
-	        //HAL_Delay(1000);
-
-	        // test Example:: set duty cycle to 0% (buzzer off)
-	        __HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, 0);
-	        HAL_Delay(1000);
-*/
 
     /* USER CODE END WHILE */
 
@@ -341,6 +293,52 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM14 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM14_Init(void)
+{
+
+  /* USER CODE BEGIN TIM14_Init 0 */
+
+  /* USER CODE END TIM14_Init 0 */
+
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM14_Init 1 */
+
+  /* USER CODE END TIM14_Init 1 */
+  htim14.Instance = TIM14;
+  htim14.Init.Prescaler = 0;
+  htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim14.Init.Period = 65535;
+  htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim14) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim14, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM14_Init 2 */
+
+  /* USER CODE END TIM14_Init 2 */
+  HAL_TIM_MspPostInit(&htim14);
 
 }
 
