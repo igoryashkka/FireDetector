@@ -1,163 +1,68 @@
-/*#define OUTPUT1_mq7 25
-#define OUTPUT2_mq7 26
-#define INPUT_PWM_SIG 34
-#define PWM_SIG 15
-#define reference_voltage_value_heat 5
-#define reference_voltage_value_logic 3.3
-// -------------------------
-#define period1 60*1000L
-#define period2 90*1000L
-#define period3 1000L
-// -------------------------
-#define MQ7_LOAD_RESISTOR 10000
-#define MQ7_CLEANAIR_RSRO 11.7
+#include "drive_mq.h"
 
-// задаємо властивості PWM сигналу
-const int freq = 100;
-const int ledChannel = 0;
-const int resolution = 8;
-// задаємо кількисть усереднень для серед. арифм. фільтр
-const int NUM_READ = 1000;
+uint32_t currentTick60_90 = 0;
+uint8_t flag_period = 0;
 
-int DutyCycle;
-uint32_t tmr;
-uint32_t tmr2;
-bool flag = true;
-float mq7_RsRo1;
-float mq7_RsRo2;
-//float mq7_volts;
-float mq7_volts1;
-float mq7_volts2;
-bool flag_sensor=false;
-int mq7_Ro1 = 10000;
-int mq7_Ro2 = 10000;
-int ppm1;
-int ppm2;
-// ------------------------------------------------------------------------------------- //
-// Read analog value , Debounce
-// ------------------------------------------------------------------------------------- //
-float midArifm() {
-  float sum = 0;
-  for (int i = 0; i < NUM_READ; i++)
-    sum += analogRead(INPUT_PWM_SIG);
-  return (sum / NUM_READ);
+extern float value_voltage;
+extern uint32_t value_ppm;
+
+float read_voltage(){
+	uint32_t value_adc = 0;
+
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, 100);
+	value_adc = HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Stop(&hadc1);
+
+	float voltage = (value_adc * REF_VOLTAGE) / BIT_ADC_VALUE;
+
+	HAL_Delay (10);
+	return voltage;
 }
 
-// функція перетворення значень ADC в вольт для імпульсного режиму роботи
-float analog_pin_voltage_arithmeticMean(int number_analog_pin, float reference_voltage_value){
-  float voltage = (float)(midArifm() * reference_voltage_value) / 4095;
+uint32_t convert_voltage_to_ppm(float mq7_volts){
+	uint32_t ppm;
+	float Rs;
+	float RsRo;
 
-  return voltage;
-}
-// функція перетворення значень ADC в вольт
-float analog_pin_voltage(int number_analog_pin, float reference_voltage_value){
-  float voltage = (float)(analogRead(number_analog_pin) * reference_voltage_value) / 4095;
+	Rs=((REF_VOLTAGE*MQ7_LOAD_RESISTOR)/mq7_volts)-MQ7_LOAD_RESISTOR;
+	RsRo=Rs/MQ7_RO2;
 
-  return voltage;
-}
+	//if(RsRo>0.09){
+		ppm=(pow((0.196/RsRo),(1/0.72)))*1000;
+	// }
+	//else {ppm=1999;}
 
-// ------------------------------------------------------------------------------------- //
-
-// функція, яка знаходить значення ppm
-int mq7_rawValue(bool flag, float reference_voltage_value, float number_analog_pin) {
-  int ppm;
-  int Rs;
-  float RsRo;
-  float mq7_volts = analog_pin_voltage(number_analog_pin, reference_voltage_value);
-
-  if(flag==0){ mq7_volts1=mq7_volts;}
-  if(flag==1) { mq7_volts2 = mq7_volts; }
-
-  Rs=((reference_voltage_value*MQ7_LOAD_RESISTOR)/mq7_volts)-MQ7_LOAD_RESISTOR;
-  //RsRo=(float)Rs/(float)mq7_Ro;
-  if(flag==0){
-      mq7_volts1=mq7_volts;
-      RsRo=(float)Rs/(float)mq7_Ro1;
-      mq7_RsRo1 = RsRo;
-    }
-    if(flag==1) {
-      mq7_volts2 = mq7_volts;
-      RsRo=(float)Rs/(float)mq7_Ro2;
-      mq7_RsRo2 = RsRo;
-     }
-
-    if(RsRo>0.09) {
-      ppm=(pow((0.196/RsRo),(1/0.72)))*1000;
-    }
-    else {ppm=3999;}
-
-    return (int)ppm;
-
+	 return ppm;
 }
 
+void run_mq_mesurments(){
+	 currentTick60_90 = __HAL_TIM_GET_COUNTER(&htim1);
+	 if (currentTick60_90 >= TIMER_PERIOD_30SEC_HEAT && flag_period==PERIOD_1_HEAT)
+	 {
+		 __HAL_TIM_SET_COUNTER(&htim1, 0);				//Reset Counter To start Count another period
+		 flag_period=PERIOD_2_HEAT;
+		 TIM1->ARR = TIMER_PERIOD_60SEC_HEAT;
+	 }
 
-// функція, яка калібрує значення Ro
-int calib_Ro(float reference_voltage_value, int number_analog_pin ){
+	 if (currentTick60_90 >= TIMER_PERIOD_60SEC_HEAT && flag_period==PERIOD_2_HEAT)
+	 {
+		 __HAL_TIM_SET_COMPARE(&htim14, TIM_CHANNEL_1, 0); //set Transistor as 5 Volt to heat
+		 __HAL_TIM_SET_COUNTER(&htim1, 0);					//Reset Counter To start Count another period
+		 flag_period=PERIOD_MESURE;
+		 TIM1->ARR = TIMER_PERIOD_60SEC_MESURE;
+	 }
 
-  int Ro;
-  int Rs;
-  float mq7_volts = analog_pin_voltage(number_analog_pin, reference_voltage_value);
+	 if (currentTick60_90 >= TIMER_PERIOD_60SEC_MESURE && flag_period==PERIOD_MESURE)
+	 {
+		 __HAL_TIM_SET_COMPARE(&htim14, TIM_CHANNEL_1, ((htim14.Init.Period/2) + OFFSET_PERIOD_MESURE));// set Transistor as 1.4 Volt to mesure values
+		 __HAL_TIM_SET_COUNTER(&htim1, 0);																//Reset Counter To start Count another period
+		 flag_period=PERIOD_1_HEAT;
+		 TIM1->ARR = TIMER_PERIOD_30SEC_HEAT;
+	 }
 
-  if(mq7_volts<0.1){
-     Rs=((reference_voltage_value*MQ7_LOAD_RESISTOR)/0.1)-MQ7_LOAD_RESISTOR;
-  }
-  else {
-    Rs=((reference_voltage_value*MQ7_LOAD_RESISTOR)/mq7_volts)-MQ7_LOAD_RESISTOR;
-  }
-
-  Ro = Rs/MQ7_CLEANAIR_RSRO;
-  return Ro;
+	 if(flag_period==PERIOD_MESURE){
+		 value_voltage = read_voltage();
+		 value_ppm = convert_voltage_to_ppm(value_voltage);
+	 }
 }
-
-// Фуннкція, яка калібрує коеф. заповнення PWM сигналу
-void freq_setup() {
-    // калібруємо напругу на транзисторія для режиму вимірювання
-    for(int dutyCycle = 0; dutyCycle <= 255; dutyCycle++){
-
-      ledcWrite(ledChannel, dutyCycle);
-      //delay(50);
-
-      float volt_level = analog_pin_voltage_arithmeticMean(INPUT_PWM_SIG, reference_voltage_value_heat);
-      if(volt_level >= 3.43 && volt_level <= 3.51 )
-      {
-      DutyCycle = dutyCycle;
-      Serial.print("voltage: ");
-      Serial.println(volt_level);
-      Serial.println(DutyCycle);
-      break;
-      }
-    }
-
-}
-
-
-// ------------------------------------------------------------------------------------- //
-
-
-void setup() {
-  //analogReference(DEFAULT);
-  // put your setup code here, to run once:
-  ledcSetup(ledChannel, freq, resolution);
-  // привязываем канал к портам
-  ledcAttachPin(PWM_SIG, ledChannel);
-
-  //int cycle = freq_setup();
-
-  Serial.begin(115200);
-
-  freq_setup();
-  ledcWrite(ledChannel, 255);
-  delay(60000);
-  ledcWrite(ledChannel, DutyCycle);
-  delay(90000);
-  mq7_Ro1=calib_Ro(reference_voltage_value_logic, OUTPUT1_mq7);
-  mq7_Ro2=calib_Ro(reference_voltage_value_logic, OUTPUT2_mq7);
-
-    //Serial.println(cycle);
-    Serial.print("mq7_Ro1: ");
-    Serial.print(mq7_Ro1);
-    Serial.print("; mq7_Ro2: ");
-    Serial.println(mq7_Ro2);
-
-}
-*/

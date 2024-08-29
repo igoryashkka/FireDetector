@@ -34,6 +34,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include "drive_sht.h"
 #include "drive_signal.h"
+#include "drive_mq.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
