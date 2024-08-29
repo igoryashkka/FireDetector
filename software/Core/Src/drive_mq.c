@@ -27,7 +27,7 @@ uint32_t convert_voltage_to_ppm(float mq7_volts){
 
 	Rs=((REF_VOLTAGE*MQ7_LOAD_RESISTOR)/mq7_volts)-MQ7_LOAD_RESISTOR;
 	RsRo=Rs/MQ7_RO2;
-
+	//Magic Formula with magic Nums -> Look Datasheet to get it.
 	//if(RsRo>0.09){
 		ppm=(pow((0.196/RsRo),(1/0.72)))*1000;
 	// }

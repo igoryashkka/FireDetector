@@ -25,7 +25,7 @@ void Buzzer_Beep(uint16_t duration);
 
 // Signaling Functions
 void Signal_idle_state(void);
-void Signal_detect_smoke(void);
+void Signal_detect_emergency(void);
 void Signal_detect_fire(void);
 
 #endif // SIGNAL_H

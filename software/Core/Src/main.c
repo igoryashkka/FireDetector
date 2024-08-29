@@ -32,6 +32,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define LIMIT_TEMP 		50
+#define LIMIT_CO_PPM 	150
+#define LIMIT_HUMIDITY 	30
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -69,10 +72,6 @@ static void MX_TIM3_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-// ------------------------------------------------------------------------------------- //
-// -----------------------------------------MQ -------------------------------------------- //
-// ------------------------------------------------------------------------------------- //
-
 
 /* USER CODE END PFP */
 
@@ -90,7 +89,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
 	float temperature, humidity;
-	int situation = 0;
+
 	//uint32_t value_adc;
   /* USER CODE END 1 */
 
@@ -139,25 +138,13 @@ int main(void)
 	  	run_mq_mesurments();
 	  	SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
 
-	  	switch(situation){
-					case 0:
-					break;
-					default:
-					break;
+	  	if(temperature > LIMIT_TEMP && value_ppm > LIMIT_CO_PPM && humidity < LIMIT_HUMIDITY){
+	  		Signal_detect_fire();
+	  	}else if(temperature > LIMIT_TEMP || value_ppm > LIMIT_CO_PPM){
+	  		Signal_detect_emergency();
+	  	}else{
+	  		Signal_idle_state();
 	  	}
-	  //There are only three states :
-	  //1.IDLE (Solid Led + Buzzer OFF)
-	  //2.increased emergency (Blink slow + Buzzer ON)
-	  //3.Fire detected (Blink Fast + Buzzer ON)
-	  //Signal_detect_smoke();
-	  //HAL_Delay(3000);
-	  //Signal_idle_state();
-	  //HAL_Delay(5000);
-	  //Signal_detect_fire();
-	  //HAL_Delay(3000);
-	  //Signal_idle_state();
-	  //HAL_Delay(5000);
-	  // --------
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

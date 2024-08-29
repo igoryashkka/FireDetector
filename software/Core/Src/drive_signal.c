@@ -71,7 +71,7 @@ void Signal_idle_state(void)
     Buzzer_Off();
 }
 
-void Signal_detect_smoke(void)
+void Signal_detect_emergency(void)
 {
     LED_Blink_Start(500);
     Buzzer_On();
