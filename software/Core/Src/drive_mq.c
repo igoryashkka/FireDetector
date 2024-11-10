@@ -23,17 +23,21 @@ float read_voltage(){
 uint32_t convert_voltage_to_ppm(float mq7_volts){
 	uint32_t ppm;
 	float Rs;
-	float RsRo;
+	float RsRo; // Check datasheet for getting importance of the value of this devision
 
-	Rs=((REF_VOLTAGE*MQ7_LOAD_RESISTOR)/mq7_volts)-MQ7_LOAD_RESISTOR;
-	RsRo=Rs/MQ7_RO2;
-	//Magic Formula with magic Nums -> Look Datasheet to get it.
-	//if(RsRo>0.09){
-		ppm=(pow((0.196/RsRo),(1/0.72)))*1000;
-	// }
-	//else {ppm=1999;}
+	// Ro: sensor resistance at 100ppm
+	// CO in the clean air.
+	// Rs: sensor resistance at various
+	// concentrations of gases.
 
-	 return ppm;
+	Rs=((REF_VOLTAGE*MQ7_LOAD_RESISTOR)/mq7_volts)-MQ7_LOAD_RESISTOR; // Resistance of sensor
+	RsRo=Rs/MQ7_RO;
+
+	if(RsRo>0.09){ 							// Check if Rs/Ro is aplicable
+		ppm=(pow((0.3/RsRo),(1/1.3)))*1000; //
+	}	else {ppm=3999;}
+
+	return ppm;
 }
 
 void run_mq_mesurments(){

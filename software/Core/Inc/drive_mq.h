@@ -7,9 +7,9 @@
 #include <math.h>
 
 // -------------- MACRO AND DEFINES AREA ------------------------- //
-#define MQ7_LOAD_RESISTOR 10000
+#define MQ7_LOAD_RESISTOR 			10000
 #define REF_VOLTAGE 	  			3.3
-#define MQ7_RO2 	      			10000
+#define MQ7_RO 	      				10000 // Resistance of sensor within 100ppm (in Ohm)
 #define NUM_READ 		  			1000
 #define BIT_ADC_VALUE	  			4095
 #define TIMER_PERIOD_30SEC_HEAT		29999

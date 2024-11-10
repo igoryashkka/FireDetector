@@ -35,7 +35,14 @@
 #define LIMIT_TEMP 		50
 #define LIMIT_CO_PPM 	150
 #define LIMIT_HUMIDITY 	30
+
+#define TEMP_ANOMALY_THRESHOLD     10
+#define CO_ANOMALY_THRESHOLD       20
+#define HUMIDITY_ANOMALY_THRESHOLD 10
+#define ANOMALY_INTERVAL           3000
 /* USER CODE END PD */
+
+
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -55,10 +62,15 @@ TIM_HandleTypeDef htim17;
 
 UART_HandleTypeDef huart1;
 
+
 /* USER CODE BEGIN PV */
 float value_voltage = 0;
 uint32_t value_ppm = 0;
+float prev_temperature = 0, prev_humidity = 0;
+uint32_t prev_ppm = 0;
+uint32_t last_anomaly_check = 0;
 /* USER CODE END PV */
+
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -89,7 +101,8 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
 	float temperature, humidity;
-
+	uint32_t current_time;
+	uint8_t fire_detected = 0, emergency_triggered = 0;
 	//uint32_t value_adc;
   /* USER CODE END 1 */
 
@@ -135,16 +148,39 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  	run_mq_mesurments();
-	  	SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+	  	  run_mq_mesurments();
+        SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
 
-	  	if(temperature > LIMIT_TEMP && value_ppm > LIMIT_CO_PPM && humidity < LIMIT_HUMIDITY){
-	  		Signal_detect_fire();
-	  	}else if(temperature > LIMIT_TEMP || value_ppm > LIMIT_CO_PPM){
-	  		Signal_detect_emergency();
-	  	}else{
-	  		Signal_idle_state();
-	  	}
+        current_time = HAL_GetTick();
+
+        if (current_time - last_anomaly_check >= ANOMALY_INTERVAL) {
+            emergency_triggered = 0;
+              if ((temperature - prev_temperature > TEMP_ANOMALY_THRESHOLD) ||
+                (value_ppm - prev_ppm > CO_ANOMALY_THRESHOLD) ||
+                (prev_humidity - humidity > HUMIDITY_ANOMALY_THRESHOLD)) {
+
+                Signal_detect_emergency();
+                emergency_triggered = 1;
+            }
+            prev_temperature = temperature;
+            prev_ppm = value_ppm;
+            prev_humidity = humidity;
+            last_anomaly_check = current_time;
+        }
+
+        if (!emergency_triggered) {
+            if (temperature > LIMIT_TEMP && value_ppm > LIMIT_CO_PPM && humidity < LIMIT_HUMIDITY) {
+                Signal_detect_fire();
+                fire_detected = 1;
+            } else if (temperature > LIMIT_TEMP || value_ppm > LIMIT_CO_PPM) {
+                Signal_detect_emergency();
+            } else {
+                Signal_idle_state();
+                fire_detected = 0;
+            }
+        } else {
+            Signal_idle_state();
+        }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
