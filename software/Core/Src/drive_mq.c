@@ -3,7 +3,7 @@
 uint32_t currentTick60_90 = 0;
 uint8_t flag_period = 0;
 
-extern float value_voltage;
+float value_voltage = 0;
 extern uint32_t value_ppm;
 
 float read_voltage(){

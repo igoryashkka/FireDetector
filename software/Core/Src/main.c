@@ -51,15 +51,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-
 I2C_HandleTypeDef hi2c1;
-
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
-
 UART_HandleTypeDef huart1;
 
 
@@ -95,6 +92,14 @@ static void MX_USART1_UART_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+  // TODO : 
+  // Improve Logic for SHT (heater-algo, make mesurments and power heating in specific sequence) 
+  // Aprov algo for values from sensors
+  // Indecating of fails, like sht or another sensor is not responding, or values is of reg is like HAL_ERROR
+  // Add try-cath , or/and additional value validators(static, anomaly values)
+  // Clean code of SHT driver
+
   uint32_t value_ppm = 0;
   float prev_temperature = 0, prev_humidity = 0;
   uint32_t prev_ppm = 0;
