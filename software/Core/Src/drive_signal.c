@@ -16,15 +16,6 @@ void LED_On(void)
     LED_SetBrightness(65535);
 }
 
-void LED_Blink(uint16_t duration)
-{
-    LED_On();
-    HAL_Delay(duration);
-    LED_Off();
-    HAL_Delay(duration);
-}
-
-
 void LED_Blink_Start(uint16_t period)
 {
 

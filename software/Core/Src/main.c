@@ -64,11 +64,7 @@ UART_HandleTypeDef huart1;
 
 
 /* USER CODE BEGIN PV */
-float value_voltage = 0;
-uint32_t value_ppm = 0;
-float prev_temperature = 0, prev_humidity = 0;
-uint32_t prev_ppm = 0;
-uint32_t last_anomaly_check = 0;
+
 /* USER CODE END PV */
 
 
@@ -99,11 +95,13 @@ static void MX_USART1_UART_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
-	float temperature, humidity;
-	uint32_t current_time;
+  uint32_t value_ppm = 0;
+  float prev_temperature = 0, prev_humidity = 0;
+  uint32_t prev_ppm = 0;
+  uint32_t last_anomaly_check = 0;
+	float temperature = 0, humidity = 0;
+	uint32_t current_time = 0;
 	uint8_t fire_detected = 0, emergency_triggered = 0;
-	//uint32_t value_adc;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/

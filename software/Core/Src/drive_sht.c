@@ -28,18 +28,6 @@ HAL_StatusTypeDef SHT41_Read_Temperature_Humidity(uint8_t cmd, float *temperatur
     return HAL_OK;
 }
 
-HAL_StatusTypeDef SHT41_Read_Serial(uint32_t *serial_number) {
-    uint8_t data[6];
-    HAL_StatusTypeDef ret;
-
-    ret = SHT41_TransmitReceive(SHT41_READ_SERIAL, data, 6);
-    if (ret != HAL_OK) return ret;
-    // TODO : extract serial
-    *serial_number = 0x45;
-
-    return HAL_OK;
-}
-
 HAL_StatusTypeDef SHT41_Soft_Reset(void) {
     uint8_t cmd = SHT41_SOFT_RESET;
     return HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDRESS << 1, &cmd, 1, HAL_MAX_DELAY);

@@ -167,5 +167,40 @@ void TIM3_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 
+void Process_UART_Command(char *command) {
+    if (strcmp(command, "get_humidity") == 0) {
+        snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV: get_humidity %.1f\n", humidity);
+        HAL_UART_Transmit(&huart1, (uint8_t*)uart_tx_buffer, strlen(uart_tx_buffer), HAL_MAX_DELAY);
+    } else if (strcmp(command, "get_temperature") == 0) {
+        snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV: get_temperature %.1f\n", temperature);
+        HAL_UART_Transmit(&huart1, (uint8_t*)uart_tx_buffer, strlen(uart_tx_buffer), HAL_MAX_DELAY);
+    } else if (strcmp(command, "get_ppm") == 0) {
+        snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV: get_ppm %d\n", value_ppm);
+        HAL_UART_Transmit(&huart1, (uint8_t*)uart_tx_buffer, strlen(uart_tx_buffer), HAL_MAX_DELAY);
+    } else if (strncmp(command, "set_buzzer ", 11) == 0) {
+        if (strcmp(&command[11], "on") == 0) {
+            HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+            snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV response: set_buzzer on\n");
+        } else if (strcmp(&command[11], "off") == 0) {
+            HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+            snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV response: set_buzzer off\n");
+        }
+        HAL_UART_Transmit(&huart1, (uint8_t*)uart_tx_buffer, strlen(uart_tx_buffer), HAL_MAX_DELAY);
+    } else if (strncmp(command, "set_led ", 8) == 0) {
+        if (strcmp(&command[8], "on") == 0) {
+            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+            snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV response: set_led on\n");
+        } else if (strcmp(&command[8], "off") == 0) {
+            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+            snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV response: set_led off\n");
+        }
+        HAL_UART_Transmit(&huart1, (uint8_t*)uart_tx_buffer, strlen(uart_tx_buffer), HAL_MAX_DELAY);
+    } else {
+        snprintf(uart_tx_buffer, UART_BUFFER_SIZE, "DEV: unknown_command\n");
+        HAL_UART_Transmit(&huart1, (uint8_t*)uart_tx_buffer, strlen(uart_tx_buffer), HAL_MAX_DELAY);
+    }
+}
+
+
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
