@@ -4,6 +4,7 @@
 // -------------- INCLUDE AREA ----------------------------------- //
 
 #include "stm32g0xx_hal.h"
+#include "drive_signal.h"
 #include <math.h>
 
 // -------------- MACRO AND DEFINES AREA ------------------------- //
@@ -19,6 +20,7 @@
 #define PERIOD_1_HEAT				1
 #define PERIOD_MESURE				0
 #define OFFSET_PERIOD_MESURE		5500
+#define MAX_VALUE_PPM    			3999
 // -------------------------
 
 // -------------------------

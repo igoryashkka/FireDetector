@@ -4,8 +4,8 @@
 // -------------- INCLUDE AREA ----------------------------------- //
 
 #include "stm32g0xx_hal.h"
-//#include "stdint.h"
-//#include "stdbool.h"
+#include "drive_signal.h"
+
 
 // -------------- MACRO AND DEFINES AREA ------------------------- //
 

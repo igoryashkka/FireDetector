@@ -6,6 +6,19 @@ uint8_t flag_period = 0;
 float value_voltage = 0;
 extern uint32_t value_ppm;
 
+HAL_StatusTypeDef MQ7_Validate(float voltage, uint32_t ppm) {
+    if (voltage < 0.1 || voltage > REF_VOLTAGE) {
+        Signal_error();
+        return HAL_ERROR;
+    }
+    if (ppm == MAX_VALUE_PPM) {
+        Signal_error();
+        return HAL_ERROR;
+    }
+    return HAL_OK;
+}
+
+
 float read_voltage(){
 	uint32_t value_adc = 0;
 
@@ -16,7 +29,10 @@ float read_voltage(){
 
 	float voltage = (value_adc * REF_VOLTAGE) / BIT_ADC_VALUE;
 
-	HAL_Delay (10);
+	 if (MQ7_Validate(voltage, convert_voltage_to_ppm(voltage)) != HAL_OK) {
+	        return -1;
+	    }
+
 	return voltage;
 }
 

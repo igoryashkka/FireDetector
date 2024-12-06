@@ -55,6 +55,13 @@ void Buzzer_Beep(uint16_t duration)
 
 // ---------- Signaling Functions ---------------------- //
 
+
+void Signal_error(void) {
+    LED_Blink_Start(5000);
+    Buzzer_Beep(500);
+}
+
+
 void Signal_idle_state(void)
 {
 	LED_Blink_Stop();

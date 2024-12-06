@@ -99,12 +99,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-  // TODO :
-  // Aprov algo for values from sensors
-  // Indecating of fails, like sht or another sensor is not responding, or values is of reg is like HAL_ERROR
-  // Add try-cath , or/and additional value validators(static, anomaly values)
-
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -141,7 +135,7 @@ int main(void)
   HAL_TIM_Base_Start(&htim1);
   //sht init :
   SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
-  //UART init
+  //UART init in interrupt mode
   HAL_UART_Receive_IT (&huart1, uart1_rx_buffer, SIZE_UART_RX_BUFFER);
   /* USER CODE END 2 */
 
