@@ -639,6 +639,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void SHT_process_mesuremnts(void)
 {
+
+  HAL_StatusTypeDef sht_status;
+
 	float prev_temperature = 0, prev_humidity = 0;
 	uint32_t prev_ppm = 0;
 	uint32_t last_anomaly_check = 0;
@@ -651,8 +654,12 @@ void SHT_process_mesuremnts(void)
 
 
     if (current_time - last_heater_activation >= HEATER_INTERVAL) {
-
-        SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
+        sht_status = SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
+        if (sht_status == HAL_ERROR) {
+            temperature = 0; humidity = 0; value_ppm = 0; prev_temperature = 0; prev_humidity = 0; prev_ppm = 0;
+            Signal_error();
+            return;
+        }
         heater_end_time = current_time + HEATER_RUN_TIME;
         last_heater_activation = current_time;
     }
@@ -661,7 +668,12 @@ void SHT_process_mesuremnts(void)
         return;  // Block measurements during heater operation
     }
 
-    SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+    sht_status = SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+    if (sht_status == HAL_ERROR) {
+        temperature = 0; humidity = 0; value_ppm = 0; prev_temperature = 0; prev_humidity = 0; prev_ppm = 0;
+        Signal_error();
+        return;
+    }
 
     if (current_time - last_anomaly_check >= ANOMALY_INTERVAL) {
         emergency_triggered = 0;
