@@ -29,7 +29,7 @@ extern TIM_HandleTypeDef htim14;
 // -------------- FUNCTION DECLARATIONS AREA --------------------- //
 float read_voltage();
 uint32_t convert_voltage_to_ppm(float mq7_volts);
-void run_mq_mesurments();
+void MQ_run_mesurments();
 
 #endif // MQ_SENSOR_H
 

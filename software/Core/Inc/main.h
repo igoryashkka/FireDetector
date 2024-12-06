@@ -35,6 +35,11 @@ extern "C" {
 #include "drive_sht.h"
 #include "drive_signal.h"
 #include "drive_mq.h"
+
+void SHT_process_mesuremnts(void);
+
+#define SIZE_UART_RX_BUFFER           15
+#define SIZE_UART_TX_BUFFER           30
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

@@ -28,12 +28,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
+#define BEEP_DELAY 1000
+extern uint8_t uart1_rx_buffer[SIZE_UART_RX_BUFFER];
+extern uint32_t value_ppm;
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+void Process_UART_Command(char *command);
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -53,6 +57,7 @@ void SVC_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
 void TIM3_IRQHandler(void);
+void USART1_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

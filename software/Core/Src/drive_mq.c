@@ -40,7 +40,7 @@ uint32_t convert_voltage_to_ppm(float mq7_volts){
 	return ppm;
 }
 
-void run_mq_mesurments(){
+void MQ_run_mesurments(){
 	 currentTick60_90 = __HAL_TIM_GET_COUNTER(&htim1);
 	 if (currentTick60_90 >= TIMER_PERIOD_30SEC_HEAT && flag_period==PERIOD_1_HEAT)
 	 {

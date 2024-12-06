@@ -24,6 +24,8 @@ extern I2C_HandleTypeDef hi2c1;
 #define SHT41_HEATER_110MW_0_1S        0x24
 #define SHT41_HEATER_20MW_1S           0x1E
 #define SHT41_HEATER_20MW_0_1S         0x15
+#define SHT41_DELAY_MS 				   15
+
 
 // -------------- FUNCTION DECLARATIONS AREA --------------------- //
 HAL_StatusTypeDef SHT41_TransmitReceive(uint8_t cmd, uint8_t *data, uint16_t length);

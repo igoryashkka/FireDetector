@@ -40,9 +40,14 @@
 #define CO_ANOMALY_THRESHOLD       20
 #define HUMIDITY_ANOMALY_THRESHOLD 10
 #define ANOMALY_INTERVAL           3000
+
+#define HEATER_INTERVAL 21600000  				// 6 hours
+#define HEATER_RUN_TIME 10000    				// 10 seconds
+
+
+uint32_t value_ppm = 0;							// Global var used in driver_mq.c
+uint8_t uart1_rx_buffer[SIZE_UART_RX_BUFFER] = {0};
 /* USER CODE END PD */
-
-
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -51,19 +56,20 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+
 I2C_HandleTypeDef hi2c1;
+
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim14;
 TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
-UART_HandleTypeDef huart1;
 
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
-
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -93,20 +99,12 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-  // TODO : 
-  // Improve Logic for SHT (heater-algo, make mesurments and power heating in specific sequence) 
+  // TODO :
   // Aprov algo for values from sensors
   // Indecating of fails, like sht or another sensor is not responding, or values is of reg is like HAL_ERROR
   // Add try-cath , or/and additional value validators(static, anomaly values)
-  // Clean code of SHT driver
 
-  uint32_t value_ppm = 0;
-  float prev_temperature = 0, prev_humidity = 0;
-  uint32_t prev_ppm = 0;
-  uint32_t last_anomaly_check = 0;
-	float temperature = 0, humidity = 0;
-	uint32_t current_time = 0;
-	uint8_t fire_detected = 0, emergency_triggered = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -143,47 +141,16 @@ int main(void)
   HAL_TIM_Base_Start(&htim1);
   //sht init :
   SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
-
-
+  //UART init
+  HAL_UART_Receive_IT (&huart1, uart1_rx_buffer, SIZE_UART_RX_BUFFER);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  	  run_mq_mesurments();
-        SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
-
-        current_time = HAL_GetTick();
-
-        if (current_time - last_anomaly_check >= ANOMALY_INTERVAL) {
-            emergency_triggered = 0;
-              if ((temperature - prev_temperature > TEMP_ANOMALY_THRESHOLD) ||
-                (value_ppm - prev_ppm > CO_ANOMALY_THRESHOLD) ||
-                (prev_humidity - humidity > HUMIDITY_ANOMALY_THRESHOLD)) {
-
-                Signal_detect_emergency();
-                emergency_triggered = 1;
-            }
-            prev_temperature = temperature;
-            prev_ppm = value_ppm;
-            prev_humidity = humidity;
-            last_anomaly_check = current_time;
-        }
-
-        if (!emergency_triggered) {
-            if (temperature > LIMIT_TEMP && value_ppm > LIMIT_CO_PPM && humidity < LIMIT_HUMIDITY) {
-                Signal_detect_fire();
-                fire_detected = 1;
-            } else if (temperature > LIMIT_TEMP || value_ppm > LIMIT_CO_PPM) {
-                Signal_detect_emergency();
-            } else {
-                Signal_idle_state();
-                fire_detected = 0;
-            }
-        } else {
-            Signal_idle_state();
-        }
+	  	MQ_run_mesurments();
+	  	SHT_process_mesuremnts();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -370,7 +337,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 65535;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 59999;
+  htim1.Init.Period = 5999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -676,7 +643,61 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void SHT_process_mesuremnts(void)
+{
+	float prev_temperature = 0, prev_humidity = 0;
+	uint32_t prev_ppm = 0;
+	uint32_t last_anomaly_check = 0;
+	uint32_t last_heater_activation = 0;
+	uint32_t heater_end_time = 0;
+	float temperature = 0, humidity = 0;
+	uint32_t current_time = 0;
+	uint8_t fire_detected = 0, emergency_triggered = 0;
+    current_time = HAL_GetTick();
 
+
+    if (current_time - last_heater_activation >= HEATER_INTERVAL) {
+
+        SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
+        heater_end_time = current_time + HEATER_RUN_TIME;
+        last_heater_activation = current_time;
+    }
+
+    if (current_time < heater_end_time) {
+        return;  // Block measurements during heater operation
+    }
+
+    SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+
+    if (current_time - last_anomaly_check >= ANOMALY_INTERVAL) {
+        emergency_triggered = 0;
+        if ((temperature - prev_temperature > TEMP_ANOMALY_THRESHOLD) ||
+            (value_ppm - prev_ppm > CO_ANOMALY_THRESHOLD) ||
+            (prev_humidity - humidity > HUMIDITY_ANOMALY_THRESHOLD)) {
+
+            Signal_detect_emergency();
+            emergency_triggered = 1;
+        }
+        prev_temperature = temperature;
+        prev_ppm = value_ppm;
+        prev_humidity = humidity;
+        last_anomaly_check = current_time;
+    }
+
+    if (!emergency_triggered) {
+        if (temperature > LIMIT_TEMP && value_ppm > LIMIT_CO_PPM && humidity < LIMIT_HUMIDITY) {
+            Signal_detect_fire();
+            fire_detected = 1;
+        } else if (temperature > LIMIT_TEMP || value_ppm > LIMIT_CO_PPM) {
+            Signal_detect_emergency();
+        } else {
+            Signal_idle_state();
+            fire_detected = 0;
+        }
+    } else {
+        Signal_idle_state();
+    }
+}
 /* USER CODE END 4 */
 
 /**
