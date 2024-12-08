@@ -19,7 +19,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include <stdio.h>
+#include <string.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -46,6 +47,7 @@
 
 
 uint32_t value_ppm = 0;								// Global var used in driver_mq.c
+uint8_t can_process_uart = 1;
 
 uint8_t uart1_rx_buffer[SIZE_UART_RX_BUFFER] = {0};
 char uart_command[SIZE_UART_RX_BUFFER] = {0};
@@ -147,7 +149,7 @@ int main(void)
   {
 	  	MQ_run_mesurments();
 	  	SHT_process_mesuremnts();
-	  	if (uart_command_ready) {
+	  	if (uart_command_ready && can_process_uart) {
 	  		uart_command_ready = 0;
 	  	    Process_UART_Command(uart_command);
 	  	    uart_command[0] = '\0';
@@ -669,11 +671,15 @@ void SHT_process_mesuremnts(void)
         }
         heater_end_time = current_time + HEATER_RUN_TIME;
         last_heater_activation = current_time;
+        can_process_uart = 0;
     }
 
     if (current_time < heater_end_time) {
+    	can_process_uart = 0;
         return;  // Block measurements during heater operation
     }
+
+    can_process_uart = 1;
 
     sht_status = SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
     if (sht_status == HAL_ERROR) {
@@ -728,7 +734,7 @@ void Process_UART_Command(char *command) {
         SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
         snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_temperature %.1f\n", temperature);
     } else if (strcmp(command, "get_ppm") == 0) {
-        snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_ppm %d\n", value_ppm);
+        snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_ppm %ld\n", value_ppm);
     } else if (strncmp(command, "set_buzzer ", 11) == 0) {
         if (strcmp(&command[11], "on") == 0) {
             Buzzer_On();
