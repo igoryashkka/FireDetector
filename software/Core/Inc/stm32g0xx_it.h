@@ -30,9 +30,14 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+
 #define BEEP_DELAY 1000
+
 extern uint8_t uart1_rx_buffer[SIZE_UART_RX_BUFFER];
+extern char uart_command[SIZE_UART_RX_BUFFER];
 extern uint32_t value_ppm;
+uint8_t uart_command_ready;
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

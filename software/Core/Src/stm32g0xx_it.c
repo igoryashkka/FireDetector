@@ -172,9 +172,12 @@ void TIM3_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-	uart1_rx_buffer[SIZE_UART_RX_BUFFER - 1] = '\0';
-	Process_UART_Command((char*)uart1_rx_buffer);
-	HAL_UART_Receive_IT(&huart1, uart1_rx_buffer, SIZE_UART_RX_BUFFER); //Re-enable UART for next command
+	 if (!uart_command_ready) {
+	        strncpy(uart_command, (char*)uart1_rx_buffer, SIZE_UART_RX_BUFFER - 1);
+	        uart_command[SIZE_UART_RX_BUFFER - 1] = '\0';
+	        uart_command_ready = 1;
+	  }
+	  HAL_UART_Receive_IT(&huart1, (uint8_t*)uart1_rx_buffer, SIZE_UART_RX_BUFFER);
 
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
@@ -185,44 +188,6 @@ void USART1_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 
-void Process_UART_Command(char *command) {
-
-	float temperature = 0, humidity = 0;
-	uint8_t uart1_tx_buffer[SIZE_UART_TX_BUFFER] = {0};
-	SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
-
-    if (strcmp(command, "get_humidity") == 0) {
-        snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_humidity %.1f\n", humidity);
-        HAL_UART_Transmit(&huart1, (uint8_t*)uart1_tx_buffer, strlen(uart1_tx_buffer), HAL_MAX_DELAY);
-    } else if (strcmp(command, "get_temperature") == 0) {
-        snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_temperature %.1f\n", temperature);
-        HAL_UART_Transmit(&huart1, (uint8_t*)uart1_tx_buffer, strlen(uart1_tx_buffer), HAL_MAX_DELAY);
-    } else if (strcmp(command, "get_ppm") == 0) {
-        snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_ppm %d\n", value_ppm);
-        HAL_UART_Transmit(&huart1, (uint8_t*)uart1_tx_buffer, strlen(uart1_tx_buffer), HAL_MAX_DELAY);
-    } else if (strncmp(command, "set_buzzer ", 11) == 0) {
-        if (strcmp(&command[11], "on") == 0) {
-
-            snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_buzzer on\n");
-        } else if (strcmp(&command[11], "off") == 0) {
-        	Buzzer_Beep(BEEP_DELAY);
-            snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_buzzer off\n");
-        }
-        HAL_UART_Transmit(&huart1, (uint8_t*)uart1_tx_buffer, strlen(uart1_tx_buffer), HAL_MAX_DELAY);
-    } else if (strncmp(command, "set_led ", 8) == 0) {
-        if (strcmp(&command[8], "on") == 0) {
-        	LED_On();
-            snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_led on\n");
-        } else if (strcmp(&command[8], "off") == 0) {
-        	LED_Off();
-            snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_led off\n");
-        }
-        HAL_UART_Transmit(&huart1, (uint8_t*)uart1_tx_buffer, strlen(uart1_tx_buffer), HAL_MAX_DELAY);
-    } else {
-        snprintf(uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: unknown_command\n");
-        HAL_UART_Transmit(&huart1, (uint8_t*)uart1_tx_buffer, strlen(uart1_tx_buffer), HAL_MAX_DELAY);
-    }
-}
 
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

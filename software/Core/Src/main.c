@@ -45,8 +45,12 @@
 #define HEATER_RUN_TIME 10000    				// 10 seconds
 
 
-uint32_t value_ppm = 0;							// Global var used in driver_mq.c
+uint32_t value_ppm = 0;								// Global var used in driver_mq.c
+
 uint8_t uart1_rx_buffer[SIZE_UART_RX_BUFFER] = {0};
+char uart_command[SIZE_UART_RX_BUFFER] = {0};
+uint8_t uart_command_ready = 0;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -133,8 +137,6 @@ int main(void)
   //mq init :
   HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);//hw_init
   HAL_TIM_Base_Start(&htim1);
-  //sht init :
-  SHT41_Activate_Heater(SHT41_HEATER_200MW_1S);
   //UART init in interrupt mode
   HAL_UART_Receive_IT (&huart1, uart1_rx_buffer, SIZE_UART_RX_BUFFER);
   /* USER CODE END 2 */
@@ -145,6 +147,11 @@ int main(void)
   {
 	  	MQ_run_mesurments();
 	  	SHT_process_mesuremnts();
+	  	if (uart_command_ready) {
+	  		uart_command_ready = 0;
+	  	    Process_UART_Command(uart_command);
+	  	    uart_command[0] = '\0';
+	  	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -704,6 +711,46 @@ void SHT_process_mesuremnts(void)
         Signal_idle_state();
     }
 }
+
+
+void Process_UART_Command(char *command) {
+    float temperature = 0, humidity = 0;
+    uint8_t uart1_tx_buffer[SIZE_UART_TX_BUFFER] = {0};
+
+    if (command[0] == '\0') {
+        return;
+    }
+
+    if (strcmp(command, "get_humidity") == 0) {
+        SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+        snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_humidity %.1f\n", humidity);
+    } else if (strcmp(command, "get_temperature") == 0) {
+        SHT41_Read_Temperature_Humidity(SHT41_MEASURE_HIGHREP_STRETCH, &temperature, &humidity);
+        snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_temperature %.1f\n", temperature);
+    } else if (strcmp(command, "get_ppm") == 0) {
+        snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: get_ppm %d\n", value_ppm);
+    } else if (strncmp(command, "set_buzzer ", 11) == 0) {
+        if (strcmp(&command[11], "on") == 0) {
+            Buzzer_On();
+            snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_buzzer on\n");
+        } else if (strcmp(&command[11], "off") == 0) {
+            Buzzer_Off();
+            snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_buzzer off\n");
+        }
+    } else if (strncmp(command, "set_led ", 8) == 0) {
+        if (strcmp(&command[8], "on") == 0) {
+            LED_On();
+            snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_led on\n");
+        } else if (strcmp(&command[8], "off") == 0) {
+            LED_Off();
+            snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV response: set_led off\n");
+        }
+    } else {
+        snprintf((char*)uart1_tx_buffer, SIZE_UART_TX_BUFFER, "DEV: unknown_command\n");
+    }
+    HAL_UART_Transmit(&huart1, uart1_tx_buffer, strlen((char*)uart1_tx_buffer), HAL_MAX_DELAY);
+}
+
 /* USER CODE END 4 */
 
 /**

@@ -36,6 +36,7 @@ extern "C" {
 #include "drive_signal.h"
 #include "drive_mq.h"
 
+void Process_UART_Command(char *command);
 void SHT_process_mesuremnts(void);
 
 #define SIZE_UART_RX_BUFFER           15

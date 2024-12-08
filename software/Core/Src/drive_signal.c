@@ -46,19 +46,12 @@ void Buzzer_On(void)
     Buzzer_SetVolume(htim16.Init.Period / 2);
 }
 
-void Buzzer_Beep(uint16_t duration)
-{
-    Buzzer_On();
-    HAL_Delay(duration);
-    Buzzer_Off();
-}
 
 // ---------- Signaling Functions ---------------------- //
 
 
 void Signal_error(void) {
     LED_Blink_Start(5000);
-    Buzzer_Beep(500);
 }
 
 
